@@ -3,94 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestor de Documentos Persistente</title>
+  <title>Gestor Documentos con Firebase</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://upload-widget.cloudinary.com/latest/global/all.js"></script>
-  <style>
-    body {font-family: 'Inter', sans-serif; background: #f9fafb; margin:0; padding:20px;}
-    .container {background: #fff; padding:20px; border-radius:12px; max-width:1000px; margin:auto; box-shadow:0 5px 15px rgba(0,0,0,0.1);}
-    h1 {color:#2563eb; text-align:center;}
-    .file-drop-zone {border:2px dashed #ccc; border-radius:10px; padding:40px; text-align:center; margin-bottom:20px; cursor:pointer;}
-    .file-drop-zone:hover {border-color:#2563eb; background:#eff6ff;}
-    .btn {padding:6px 12px; border:none; border-radius:6px; cursor:pointer; margin:2px;}
-    .btn-info {background:#2563eb; color:white;}
-    .btn-danger {background:#ef4444; color:white;}
-    .btn-edit {background:#6b7280; color:white;}
-    .btn-print {background:#10b981; color:white;}
-    .filters {display:flex; flex-wrap:wrap; justify-content:space-between; margin-bottom:10px; gap:10px;}
-    .filters input, .filters select {padding:6px; border:1px solid #ddd; border-radius:6px;}
-    .table-container {overflow-x:auto;}
-    table {width:100%; border-collapse:collapse;}
-    th,td {padding:10px; border-bottom:1px solid #ddd; font-size:0.9em; text-align:center;}
-    th {background:#2563eb; color:white;}
-    tr:hover {background:#f3f4f6;}
-    .pagination {display:flex; justify-content:center; align-items:center; gap:10px; margin-top:15px;}
-    .badge {padding:2px 6px; border-radius:6px; font-size:0.75em; color:white;}
-    .badge-cloud {background:#2563eb;}
-    .badge-local {background:#6b7280;}
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>📂 Gestor de <span style="color:#2563eb;">Documentos</span></h1>
+  <script type="module">
+    // --- Firebase SDK ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    <!-- Drop Zone -->
-    <div id="fileDropZone" class="file-drop-zone">
-      <i class="fas fa-cloud-upload-alt" style="font-size:2em; color:#2563eb;"></i>
-      <h3>Arrastra archivos aquí o haz clic</h3>
-      <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" style="display:none;">
-    </div>
+    // 🔑 Pega aquí tus credenciales de Firebase
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_PROYECTO.firebaseapp.com",
+      projectId: "TU_PROYECTO",
+      storageBucket: "TU_PROYECTO.appspot.com",
+      messagingSenderId: "XXXXXXXXXXXX",
+      appId: "1:XXXXXXXXXXXX:web:XXXXXXXXXXXX"
+    };
 
-    <!-- Botón Cloudinary -->
-    <div style="text-align:center; margin-bottom:20px;">
-      <button id="upload_widget" class="btn btn-info"><i class="fas fa-upload"></i> Subir con Cloudinary</button>
-    </div>
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    <!-- Filtros -->
-    <div class="filters">
-      <input type="text" id="searchInput" placeholder="Buscar...">
-      <select id="originFilter">
-        <option value="all">Todos</option>
-        <option value="cloudinary">Solo Cloudinary</option>
-        <option value="local">Solo Local</option>
-      </select>
-    </div>
-
-    <!-- Tabla -->
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Fecha</th>
-            <th>Tamaño</th>
-            <th>Origen</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="importedDocumentsTableBody">
-          <tr><td colspan="6" style="text-align:center;">No hay documentos</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <script>
+    // --- Gestor de documentos ---
     class DocumentManager {
       constructor() {
-        // Cargar desde localStorage al iniciar
-        this.documents = JSON.parse(localStorage.getItem("documents") || "[]");
-        this.currentPage = 1;
-        this.itemsPerPage = 10;
+        this.documents = [];
+        this.collectionRef = collection(db, "documents");
+        this.loadDocuments();
         this.setupFileUpload();
         this.setupCloudinary();
-        this.setupFilters();
-        this.loadImportedDocuments();
       }
 
-      // --- Subida local ---
+      async loadDocuments(){
+        const snapshot = await getDocs(this.collectionRef);
+        this.documents = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        this.renderTable();
+      }
+
       setupFileUpload(){
         const drop=document.getElementById("fileDropZone");
         const input=document.getElementById("fileInput");
@@ -99,74 +49,51 @@
         drop.addEventListener("drop",e=>{e.preventDefault();this.handleFileSelection(e.dataTransfer.files);});
         input.addEventListener("change",e=>this.handleFileSelection(e.target.files));
       }
-      handleFileSelection(files){
-        Array.from(files).forEach(f=>{
+
+      async handleFileSelection(files){
+        for(const f of files){
           const reader=new FileReader();
-          reader.onload=()=>{
-            const doc={id:Date.now(),name:f.name,description:"Documento local",size:f.size,uploadedAt:new Date().toISOString(),data:reader.result};
-            this.documents.push(doc);
-            localStorage.setItem("documents",JSON.stringify(this.documents));
-            this.loadImportedDocuments();
+          reader.onload=async ()=>{
+            const docData={name:f.name,description:"Documento local",size:f.size,uploadedAt:new Date().toISOString(),data:reader.result};
+            await addDoc(this.collectionRef, docData);
+            this.loadDocuments();
           };
           reader.readAsDataURL(f);
-        });
+        }
       }
 
-      // --- Subida Cloudinary ---
       setupCloudinary(){
         if(typeof cloudinary==='undefined')return;
         const widget=cloudinary.createUploadWidget(
           {cloudName:'dbzucruu4',uploadPreset:'documentos_defensoria'},
-          (err,res)=>{
+          async (err,res)=>{
             if(res.event==="success"){
-              const doc={
-                id:Date.now(),
-                name:res.info.original_filename+"."+res.info.format,
-                description:"Documento subido a Cloudinary",
-                size:res.info.bytes,
-                uploadedAt:new Date().toISOString(),
-                url:res.info.secure_url
-              };
-              this.documents.push(doc);
-              localStorage.setItem("documents",JSON.stringify(this.documents));
-              this.loadImportedDocuments();
+              const docData={name:res.info.original_filename+"."+res.info.format,description:"Subido a Cloudinary",size:res.info.bytes,uploadedAt:new Date().toISOString(),url:res.info.secure_url};
+              await addDoc(this.collectionRef, docData);
+              this.loadDocuments();
             }
           }
         );
         document.getElementById("upload_widget").addEventListener("click",()=>widget.open(),false);
       }
 
-      // --- Filtros ---
-      setupFilters(){
-        document.getElementById("searchInput").addEventListener("input",()=>this.loadImportedDocuments());
-        document.getElementById("originFilter").addEventListener("change",()=>this.loadImportedDocuments());
+      async deleteDocument(id){
+        if(!confirm("¿Eliminar documento?"))return;
+        await deleteDoc(doc(db,"documents",id));
+        this.loadDocuments();
       }
 
-      // --- Filtrado y render ---
-      getFilteredDocuments(){
-        const q=document.getElementById("searchInput").value.toLowerCase();
-        const origin=document.getElementById("originFilter").value;
-        return this.documents.filter(d=>{
-          const matches=d.name.toLowerCase().includes(q)||d.description.toLowerCase().includes(q);
-          let ok=true;
-          if(origin==="cloudinary") ok=ok && !!d.url;
-          if(origin==="local") ok=ok && !!d.data;
-          return matches && ok;
-        });
-      }
-
-      loadImportedDocuments(){
-        const docs=this.getFilteredDocuments();
-        const tbody=document.getElementById("importedDocumentsTableBody");
-        if(!docs.length){
+      renderTable(){
+        const tbody=document.getElementById("documentsTableBody");
+        if(!this.documents.length){
           tbody.innerHTML='<tr><td colspan="6" style="text-align:center;">No hay documentos</td></tr>';
           return;
         }
-        tbody.innerHTML=docs.map(d=>{
-          const fecha=new Date(d.uploadedAt).toLocaleString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+        tbody.innerHTML=this.documents.map(d=>{
+          const fecha=new Date(d.uploadedAt).toLocaleString("es-ES");
           const origen = d.url 
-            ? `<span class="badge badge-cloud">🌐 Cloudinary</span>` 
-            : `<span class="badge badge-local">💻 Local</span>`;
+            ? `<span style="background:#2563eb; color:white; padding:2px 6px; border-radius:6px; font-size:0.75em;">🌐 Cloudinary</span>` 
+            : `<span style="background:#6b7280; color:white; padding:2px 6px; border-radius:6px; font-size:0.75em;">💻 Local</span>`;
           return `<tr>
             <td>${d.name}</td>
             <td>${d.description}</td>
@@ -174,28 +101,52 @@
             <td>${(d.size/1024).toFixed(1)} KB</td>
             <td>${origen}</td>
             <td>
-              <button class="btn btn-info" onclick="documentManager.download('${d.id}')"><i class="fas fa-download"></i></button>
-              <button class="btn btn-danger" onclick="documentManager.delete('${d.id}')"><i class="fas fa-trash"></i></button>
+              <button class="btn btn-info" onclick="window.open('${d.url || d.data}', '_blank')"><i class="fas fa-download"></i></button>
+              <button class="btn btn-danger" onclick="documentManager.deleteDocument('${d.id}')"><i class="fas fa-trash"></i></button>
             </td>
           </tr>`;
         }).join("");
-      }
-
-      // --- Acciones ---
-      download(id){
-        const d=this.documents.find(x=>x.id==id);
-        if(d.url) window.open(d.url,"_blank");
-        else if(d.data){const a=document.createElement("a");a.href=d.data;a.download=d.name;a.click();}
-      }
-      delete(id){
-        if(!confirm("¿Eliminar documento?"))return;
-        this.documents=this.documents.filter(d=>d.id!=id);
-        localStorage.setItem("documents",JSON.stringify(this.documents));
-        this.loadImportedDocuments();
       }
     }
 
     window.addEventListener("DOMContentLoaded",()=>{window.documentManager=new DocumentManager();});
   </script>
+  <style>
+    body {font-family: 'Inter', sans-serif; background: #f9fafb; margin:0; padding:20px;}
+    .container {background: #fff; padding:20px; border-radius:12px; max-width:950px; margin:auto; box-shadow:0 5px 15px rgba(0,0,0,0.1);}
+    h1 {color:#2563eb; text-align:center;}
+    .file-drop-zone {border:2px dashed #ccc; border-radius:10px; padding:40px; text-align:center; margin-bottom:20px; cursor:pointer;}
+    .btn {padding:6px 12px; border:none; border-radius:6px; cursor:pointer; margin:2px;}
+    .btn-info {background:#2563eb; color:white;}
+    .btn-danger {background:#ef4444; color:white;}
+    table {width:100%; border-collapse:collapse;}
+    th,td {padding:10px; border-bottom:1px solid #ddd; font-size:0.9em; text-align:center;}
+    th {background:#2563eb; color:white;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📂 Gestor de Documentos con Firebase</h1>
+
+    <div id="fileDropZone" class="file-drop-zone">
+      <h3>Arrastra archivos aquí o haz clic</h3>
+      <input type="file" id="fileInput" multiple style="display:none;">
+    </div>
+
+    <div style="text-align:center; margin-bottom:20px;">
+      <button id="upload_widget" class="btn btn-info"><i class="fas fa-upload"></i> Subir con Cloudinary</button>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr><th>Nombre</th><th>Descripción</th><th>Fecha</th><th>Tamaño</th><th>Origen</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="documentsTableBody">
+          <tr><td colspan="6" style="text-align:center;">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </body>
 </html>
