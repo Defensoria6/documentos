@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Importar Documentos</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://upload-widget.cloudinary.com/latest/global/all.js" type="text/javascript"></script>
+  <style>
+    body {font-family: 'Inter', sans-serif; background: #f9fafb; margin:0; padding:20px;}
+    .container {background: #fff; padding:20px; border-radius:12px; max-width:950px; margin:auto; box-shadow:0 5px 15px rgba(0,0,0,0.1);}
+    h1 {color:#2563eb; text-align:center;}
+    .file-drop-zone {border:2px dashed #ccc; border-radius:10px; padding:40px; text-align:center; margin-bottom:20px; cursor:pointer;}
+    .file-drop-zone:hover {border-color:#2563eb; background:#eff6ff;}
+    .btn {padding:6px 12px; border:none; border-radius:6px; cursor:pointer; margin:2px;}
+    .btn-info {background:#2563eb; color:white;}
+    .btn-danger {background:#ef4444; color:white;}
+    .btn-edit {background:#6b7280; color:white;}
+    .btn-print {background:#10b981; color:white;}
+    .filters {display:flex; flex-wrap:wrap; justify-content:space-between; margin-bottom:10px; gap:10px;}
+    .filters input {padding:6px; border:1px solid #ddd; border-radius:6px;}
+    .table-container {overflow-x:auto;}
+    table {width:100%; border-collapse:collapse;}
+    th,td {padding:10px; border-bottom:1px solid #ddd; font-size:0.9em;}
+    th {background:#2563eb; color:white;}
+    tr:hover {background:#f3f4f6;}
+    .pagination {display:flex; justify-content:center; align-items:center; gap:10px; margin-top:15px;}
+    /* Modal */
+    .modal-overlay {display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center;}
+    .modal {background:white; padding:20px; border-radius:10px; width:300px;}
+    .modal input,.modal textarea {width:100%; padding:8px; margin:5px 0; border:1px solid #ddd; border-radius:6px;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📂<span style="color:#2563eb;">Documentos</span></h1>
+
+    <!-- Drop Zone -->
+    <div id="fileDropZone" class="file-drop-zone">
+      <i class="fas fa-cloud-upload-alt" style="font-size:2em; color:#2563eb;"></i>
+      <h3>Arrastra archivos aquí o haz clic</h3>
+      <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" style="display:none;">
+    </div>
+
+    <!-- Botón Cloudinary -->
+    <div style="text-align:center; margin-bottom:20px;">
+      <button id="upload_widget" class="btn btn-info"><i class="fas fa-upload"></i> Subir con Cloudinary</button>
+    </div>
+
+    <!-- Lista Documentos -->
+    <div class="filters">
+      <input type="text" id="searchInput" placeholder="Buscar...">
+      <div>
+        <input type="date" id="startDate">
+        <input type="date" id="endDate">
+        <button id="printBtn" class="btn btn-print"><i class="fas fa-print"></i> Imprimir</button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Nombre</th><th>Descripción</th><th>Fecha</th><th>Tamaño</th><th>Acciones</th></tr></thead>
+        <tbody id="importedDocumentsTableBody"><tr><td colspan="5" style="text-align:center;">No hay documentos</td></tr></tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <button id="prevPage" class="btn btn-info">Anterior</button>
+      <span id="pageIndicator"></span>
+      <button id="nextPage" class="btn btn-info">Siguiente</button>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="editModal" class="modal-overlay">
+    <div class="modal">
+      <h3 style="color:#2563eb;">Editar Documento</h3>
+      <input type="hidden" id="editId">
+      <label>Nombre</label>
+      <input type="text" id="editName">
+      <label>Descripción</label>
+      <textarea id="editDescription" rows="3"></textarea>
+      <div style="margin-top:10px; text-align:right;">
+        <button onclick="document.getElementById('editModal').style.display='none'" class="btn btn-danger">Cancelar</button>
+        <button onclick="documentManager.saveEdit()" class="btn btn-info">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class DocumentManager {
+      constructor() {
+        this.documents = JSON.parse(localStorage.getItem("documents")||"[]");
+        this.currentPage = 1;
+        this.itemsPerPage = 10;
+        this.setupFileUpload();
+        this.setupCloudinary();
+        this.setupFilters();
+        this.loadImportedDocuments();
+      }
+      setupFileUpload(){
+        const drop=document.getElementById("fileDropZone");
+        const input=document.getElementById("fileInput");
+        drop.addEventListener("click",()=>input.click());
+        drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("dragover");});
+        drop.addEventListener("dragleave",()=>drop.classList.remove("dragover"));
+        drop.addEventListener("drop",e=>{e.preventDefault();this.handleFileSelection(e.dataTransfer.files);});
+        input.addEventListener("change",e=>this.handleFileSelection(e.target.files));
+      }
+      setupCloudinary(){
+        if(typeof cloudinary==='undefined')return;
+        const widget=cloudinary.createUploadWidget({cloudName:'dbzucruu4',uploadPreset:'documentos_defensoria'},
+          (err,res)=>{
+            if(res.event==="success"){
+              const doc={id:Date.now(),name:res.info.original_filename+"."+res.info.format,description:"Documento subido con Cloudinary",size:res.info.bytes,uploadedAt:new Date().toISOString(),url:res.info.secure_url};
+              this.documents.push(doc);
+              localStorage.setItem("documents",JSON.stringify(this.documents));
+              this.loadImportedDocuments();
+            }
+          });
+        document.getElementById("upload_widget").addEventListener("click",()=>widget.open(),false);
+      }
+      setupFilters(){
+        document.getElementById("searchInput").addEventListener("input",()=>this.loadImportedDocuments());
+        document.getElementById("startDate").addEventListener("change",()=>this.loadImportedDocuments());
+        document.getElementById("endDate").addEventListener("change",()=>this.loadImportedDocuments());
+        document.getElementById("printBtn").addEventListener("click",()=>this.printFiltered());
+        document.getElementById("prevPage").addEventListener("click",()=>{if(this.currentPage>1){this.currentPage--;this.loadImportedDocuments();}});
+        document.getElementById("nextPage").addEventListener("click",()=>{if(this.currentPage<this.getTotalPages()){this.currentPage++;this.loadImportedDocuments();}});
+      }
+      handleFileSelection(files){
+        Array.from(files).forEach(f=>{
+          const reader=new FileReader();
+          reader.onload=()=>{
+            const doc={id:Date.now(),name:f.name,description:"Documento: "+f.name,size:f.size,uploadedAt:new Date().toISOString(),data:reader.result};
+            this.documents.push(doc);
+            localStorage.setItem("documents",JSON.stringify(this.documents));
+            this.loadImportedDocuments();
+          };
+          reader.readAsDataURL(f);
+        });
+      }
+      getTotalPages(){return Math.ceil(this.getFilteredDocuments().length/this.itemsPerPage)||1;}
+      getFilteredDocuments(){
+        const q=document.getElementById("searchInput").value.toLowerCase();
+        const start=document.getElementById("startDate").value;
+        const end=document.getElementById("endDate").value;
+        return this.documents.filter(d=>{
+          const matches=d.name.toLowerCase().includes(q)||d.description.toLowerCase().includes(q);
+          const fecha=new Date(d.uploadedAt);
+          let ok=true;
+          if(start) ok=ok && fecha>=new Date(start+"T00:00:00");
+          if(end) ok=ok && fecha<=new Date(end+"T23:59:59");
+          return matches&&ok;
+        });
+      }
+      loadImportedDocuments(){
+        const docs=this.getFilteredDocuments();
+        const tbody=document.getElementById("importedDocumentsTableBody");
+        const total=this.getTotalPages();
+        if(this.currentPage>total) this.currentPage=total;
+        const startIdx=(this.currentPage-1)*this.itemsPerPage;
+        const pageDocs=docs.slice(startIdx,startIdx+this.itemsPerPage);
+        if(!pageDocs.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;">No hay documentos</td></tr>';document.getElementById("pageIndicator").innerText="Página 0 de 0";return;}
+        tbody.innerHTML=pageDocs.map(d=>{
+          const fecha=new Date(d.uploadedAt).toLocaleString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+          return `<tr>
+            <td>${d.name}</td>
+            <td>${d.description}</td>
+            <td>${fecha}</td>
+            <td>${(d.size/1024).toFixed(1)} KB</td>
+            <td>
+              <button class="btn btn-info" onclick="documentManager.download('${d.id}')"><i class="fas fa-download"></i></button>
+              <button class="btn btn-edit" onclick="documentManager.openEditModal('${d.id}')"><i class="fas fa-pen"></i></button>
+              <button class="btn btn-danger" onclick="documentManager.delete('${d.id}')"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>`;
+        }).join("");
+        document.getElementById("pageIndicator").innerText=`Página ${this.currentPage} de ${total}`;
+      }
+      download(id){
+        const d=this.documents.find(x=>x.id==id);
+        if(d.url) window.open(d.url,"_blank");
+        else if(d.data){const a=document.createElement("a");a.href=d.data;a.download=d.name;a.click();}
+      }
+      delete(id){
+        if(!confirm("¿Eliminar documento?"))return;
+        this.documents=this.documents.filter(d=>d.id!=id);
+        localStorage.setItem("documents",JSON.stringify(this.documents));
+        this.loadImportedDocuments();
+      }
+      openEditModal(id){
+        const d=this.documents.find(x=>x.id==id);
+        document.getElementById("editId").value=id;
+        document.getElementById("editName").value=d.name;
+        document.getElementById("editDescription").value=d.description;
+        document.getElementById("editModal").style.display="flex";
+      }
+      saveEdit(){
+        const id=document.getElementById("editId").value;
+        const d=this.documents.find(x=>x.id==id);
+        d.name=document.getElementById("editName").value;
+        d.description=document.getElementById("editDescription").value;
+        localStorage.setItem("documents",JSON.stringify(this.documents));
+        document.getElementById("editModal").style.display="none";
+        this.loadImportedDocuments();
+      }
+      printFiltered(){
+        const docs=this.getFilteredDocuments();
+        let html="<h2>Listado de Documentos</h2><table border='1' cellspacing='0' cellpadding='5'><tr><th>Nombre</th><th>Descripción</th><th>Fecha</th><th>Tamaño</th></tr>";
+        docs.forEach(d=>{
+          const fecha=new Date(d.uploadedAt).toLocaleString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+          html+=`<tr><td>${d.name}</td><td>${d.description}</td><td>${fecha}</td><td>${(d.size/1024).toFixed(1)} KB</td></tr>`;
+        });
+        html+="</table>";
+        const w=window.open("","", "width=800,height=600");
+        w.document.write(html);
+        w.print();
+      }
+    }
+    window.addEventListener("DOMContentLoaded",()=>{window.documentManager=new DocumentManager();});
+  </script>
+</body>
+</html>
+
