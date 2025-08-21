@@ -10,7 +10,7 @@
   <script type="module">
     // --- Firebase SDK ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     // 🔑 Configuración de Firebase - REEMPLAZA CON TUS CREDENCIALES
     const firebaseConfig = {
@@ -84,8 +84,12 @@
     class DocumentManager {
       constructor() {
         this.documents = [];
+        this.filteredDocuments = [];
         this.collectionRef = collection(db, "documents");
         this.cloudinaryWidget = null;
+        this.currentPage = 1;
+        this.itemsPerPage = 10;
+        this.searchTerm = '';
         this.init();
       }
 
@@ -94,6 +98,8 @@
           await this.loadDocuments();
           this.setupFileUpload();
           this.setupCloudinary();
+          this.setupSearch();
+          this.setupPagination();
           showMessage('Sistema inicializado correctamente', 'success');
         } catch (error) {
           console.error('Error al inicializar:', error);
@@ -110,13 +116,69 @@
             id: doc.id,
             ...doc.data()
           }));
+          this.applyFilter();
           this.renderTable();
+          this.updatePaginationInfo();
         } catch (error) {
           console.error('Error al cargar documentos:', error);
           showMessage('Error al cargar los documentos', 'error');
         } finally {
           showLoading(false);
         }
+      }
+
+      setupSearch() {
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', (e) => {
+          this.searchTerm = e.target.value.toLowerCase();
+          this.currentPage = 1;
+          this.applyFilter();
+          this.renderTable();
+          this.updatePaginationInfo();
+        });
+      }
+
+      setupPagination() {
+        document.getElementById('prevPage').addEventListener('click', () => {
+          if (this.currentPage > 1) {
+            this.currentPage--;
+            this.renderTable();
+            this.updatePaginationInfo();
+          }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+          const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
+          if (this.currentPage < totalPages) {
+            this.currentPage++;
+            this.renderTable();
+            this.updatePaginationInfo();
+          }
+        });
+      }
+
+      applyFilter() {
+        if (!this.searchTerm) {
+          this.filteredDocuments = [...this.documents];
+        } else {
+          this.filteredDocuments = this.documents.filter(doc => 
+            doc.name.toLowerCase().includes(this.searchTerm) ||
+            doc.description.toLowerCase().includes(this.searchTerm)
+          );
+        }
+      }
+
+      updatePaginationInfo() {
+        const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
+        const totalElements = this.filteredDocuments.length;
+        
+        document.getElementById('pageInfo').textContent = 
+          `Página ${this.currentPage} de ${totalPages}`;
+        document.getElementById('totalElements').textContent = 
+          `Total: ${totalElements} elementos`;
+        
+        document.getElementById('prevPage').disabled = this.currentPage === 1;
+        document.getElementById('nextPage').disabled = this.currentPage === totalPages || totalPages === 0;
       }
 
       setupFileUpload() {
@@ -272,9 +334,6 @@
           // Eliminar de Firestore
           await deleteDoc(doc(db, "documents", id));
           
-          // Opcionalmente eliminar de Cloudinary (requiere backend para seguridad)
-          // Por ahora solo eliminamos de Firestore
-          
           await this.loadDocuments();
           showMessage('Documento eliminado correctamente', 'success');
         } catch (error) {
@@ -285,10 +344,100 @@
         }
       }
 
+      async editDocument(id, currentName, currentDescription) {
+        const newName = prompt('Nuevo nombre del documento:', currentName);
+        if (newName === null) return;
+
+        const newDescription = prompt('Nueva descripción del documento:', currentDescription);
+        if (newDescription === null) return;
+
+        try {
+          showLoading(true);
+          
+          await updateDoc(doc(db, "documents", id), {
+            name: newName,
+            description: newDescription
+          });
+          
+          await this.loadDocuments();
+          showMessage('Documento actualizado correctamente', 'success');
+        } catch (error) {
+          console.error('Error al actualizar documento:', error);
+          showMessage('Error al actualizar el documento', 'error');
+        } finally {
+          showLoading(false);
+        }
+      }
+
+      printDocumentList() {
+        const printWindow = window.open('', '_blank');
+        const currentDate = new Date().toLocaleDateString('es-ES');
+        
+        let printContent = `
+          <html>
+            <head>
+              <title>Listado de Documentos</title>
+              <style>
+                body { font-family: Arial, sans-serif; font-size: 14px; margin: 20px; }
+                h1 { font-size: 14px; font-weight: bold; text-align: center; margin-bottom: 20px; }
+                .header-info { font-size: 14px; margin-bottom: 20px; }
+                table { width: 100%; border-collapse: collapse; font-size: 14px; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; font-weight: bold; font-size: 14px; }
+                .footer { margin-top: 20px; font-size: 14px; text-align: center; }
+              </style>
+            </head>
+            <body>
+              <h1>Listado de Documentos Importados</h1>
+              <div class="header-info">
+                <p><strong>Fecha de impresión:</strong> ${currentDate}</p>
+                <p><strong>Total de elementos:</strong> ${this.filteredDocuments.length}</p>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nombre del Documento</th>
+                    <th>Descripción</th>
+                    <th>Fecha de Subida</th>
+                    <th>Tamaño</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+
+        this.filteredDocuments.forEach(doc => {
+          const fecha = new Date(doc.uploadedAt).toLocaleDateString("es-ES");
+          const fileSize = formatFileSize(doc.size);
+          
+          printContent += `
+            <tr>
+              <td>${doc.name}</td>
+              <td>${doc.description}</td>
+              <td>${fecha}</td>
+              <td>${fileSize}</td>
+            </tr>
+          `;
+        });
+
+        printContent += `
+                </tbody>
+              </table>
+              <div class="footer">
+                <p>Defensoría Civil y Comercial 6 - Sistema de Gestión de Documentos</p>
+              </div>
+            </body>
+          </html>
+        `;
+
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.print();
+      }
+
       renderTable() {
         const tbody = document.getElementById("documentsTableBody");
         
-        if (!this.documents.length) {
+        if (!this.filteredDocuments.length) {
           tbody.innerHTML = `
             <tr>
               <td colspan="6" class="no-documents">
@@ -301,7 +450,12 @@
           return;
         }
 
-        tbody.innerHTML = this.documents.map(doc => {
+        // Calcular elementos para la página actual
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        const pageDocuments = this.filteredDocuments.slice(startIndex, endIndex);
+
+        tbody.innerHTML = pageDocuments.map(doc => {
           const fecha = new Date(doc.uploadedAt).toLocaleString("es-ES", {
             year: 'numeric',
             month: 'short',
@@ -330,10 +484,13 @@
                 </span>
               </td>
               <td class="actions-cell">
-                <button class="btn btn-primary" onclick="window.open('${doc.url}', '_blank')" title="Ver/Descargar">
+                <button class="btn btn-primary btn-sm" onclick="window.open('${doc.url}', '_blank')" title="Ver/Descargar">
                   <i class="fas fa-external-link-alt"></i>
                 </button>
-                <button class="btn btn-danger" onclick="documentManager.deleteDocument('${doc.id}', '${doc.cloudinaryId || ''}')" title="Eliminar">
+                <button class="btn btn-secondary btn-sm" onclick="documentManager.editDocument('${doc.id}', '${doc.name.replace(/'/g, "\\'")}', '${doc.description.replace(/'/g, "\\'")}');" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="documentManager.deleteDocument('${doc.id}', '${doc.cloudinaryId || ''}')" title="Eliminar">
                   <i class="fas fa-trash"></i>
                 </button>
               </td>
@@ -361,6 +518,7 @@
       min-height: 100vh;
       padding: 20px;
       color: #333;
+      font-size: 14px;
     }
 
     .container {
@@ -381,8 +539,8 @@
 
     .header h1 {
       color: #2d3748;
-      font-size: 2.5rem;
-      font-weight: 700;
+      font-size: 14px;
+      font-weight: bold;
       margin-bottom: 10px;
       background: linear-gradient(135deg, #667eea, #764ba2);
       -webkit-background-clip: text;
@@ -392,8 +550,8 @@
 
     .header p {
       color: #718096;
-      font-size: 1.1rem;
-      font-weight: 400;
+      font-size: 14px;
+      font-weight: normal;
     }
 
     /* Área de subida de archivos */
@@ -422,14 +580,15 @@
 
     .file-drop-zone h3 {
       color: #4a5568;
-      font-size: 1.5rem;
+      font-size: 14px;
+      font-weight: bold;
       margin-bottom: 10px;
-      font-weight: 600;
     }
 
     .file-drop-zone p {
       color: #718096;
-      font-size: 1rem;
+      font-size: 14px;
+      font-weight: normal;
       margin-bottom: 20px;
     }
 
@@ -439,14 +598,57 @@
       margin-bottom: 20px;
     }
 
+    /* Controles */
+    .controls-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .search-container {
+      flex: 1;
+      min-width: 250px;
+    }
+
+    .search-container input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: normal;
+      transition: all 0.3s ease;
+    }
+
+    .search-container input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .pagination-info {
+      font-size: 14px;
+      font-weight: normal;
+      color: #718096;
+    }
+
     /* Botones */
     .btn {
       padding: 12px 24px;
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      font-weight: 600;
-      font-size: 0.95rem;
+      font-weight: normal;
+      font-size: 14px;
       transition: all 0.3s ease;
       display: inline-flex;
       align-items: center;
@@ -457,6 +659,12 @@
     .btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
     }
 
     .btn-primary {
@@ -474,9 +682,14 @@
       color: white;
     }
 
+    .btn-success {
+      background: linear-gradient(135deg, #48bb78, #38a169);
+      color: white;
+    }
+
     .btn-sm {
       padding: 8px 16px;
-      font-size: 0.85rem;
+      font-size: 14px;
     }
 
     /* Mensajes y loading */
@@ -491,7 +704,8 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      font-weight: 500;
+      font-weight: normal;
+      font-size: 14px;
     }
 
     .message-info {
@@ -517,7 +731,8 @@
       text-align: center;
       padding: 20px;
       color: #667eea;
-      font-weight: 600;
+      font-weight: normal;
+      font-size: 14px;
     }
 
     .spinner {
@@ -555,8 +770,8 @@
       color: white;
       padding: 20px 15px;
       text-align: left;
-      font-weight: 600;
-      font-size: 0.95rem;
+      font-weight: bold;
+      font-size: 14px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -565,6 +780,8 @@
       padding: 20px 15px;
       border-bottom: 1px solid #e2e8f0;
       vertical-align: middle;
+      font-size: 14px;
+      font-weight: normal;
     }
 
     tr:hover {
@@ -589,21 +806,23 @@
     }
 
     .file-name {
-      font-weight: 600;
+      font-weight: bold;
+      font-size: 14px;
       color: #2d3748;
       margin-bottom: 4px;
     }
 
     .file-description {
-      font-size: 0.85rem;
+      font-size: 14px;
+      font-weight: normal;
       color: #718096;
     }
 
     .source-badge {
       padding: 6px 12px;
       border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: normal;
       display: inline-flex;
       align-items: center;
       gap: 5px;
@@ -632,13 +851,14 @@
     }
 
     .no-documents p {
-      font-size: 1.2rem;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: bold;
       margin-bottom: 10px;
     }
 
     .no-documents small {
-      font-size: 0.9rem;
+      font-size: 14px;
+      font-weight: normal;
     }
 
     /* Responsive */
@@ -649,15 +869,24 @@
       }
 
       .header h1 {
-        font-size: 2rem;
+        font-size: 14px;
       }
 
       .file-drop-zone {
         padding: 30px 15px;
       }
 
+      .controls-section {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .pagination-controls {
+        justify-content: center;
+      }
+
       table {
-        font-size: 0.85rem;
+        font-size: 14px;
       }
 
       th, td {
@@ -686,6 +915,8 @@
 
     .config-section h3 {
       color: #2d3748;
+      font-size: 14px;
+      font-weight: bold;
       margin-bottom: 15px;
       display: flex;
       align-items: center;
@@ -694,6 +925,8 @@
 
     .config-section p {
       color: #718096;
+      font-size: 14px;
+      font-weight: normal;
       line-height: 1.6;
     }
 
@@ -702,7 +935,7 @@
       padding: 2px 6px;
       border-radius: 4px;
       font-family: 'Monaco', 'Menlo', monospace;
-      font-size: 0.9rem;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -710,7 +943,7 @@
   <div class="container">
     <!-- Header -->
     <div class="header">
-      <h1><i class="fas fa-cloud-upload-alt"></i>Documentos</h1>
+      <h1><i class="fas fa-cloud-upload-alt"></i> Documentos</h1>
       <p>Almacenamiento seguro y accesible</p>
     </div>
 
@@ -740,6 +973,30 @@
           Subir con Cloudinary Widget
         </button>
       </div>
+    </div>
+
+    <!-- Controles de búsqueda y paginación -->
+    <div class="controls-section">
+      <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Buscar documentos por nombre o descripción...">
+      </div>
+      <div class="pagination-controls">
+        <button id="prevPage" class="btn btn-secondary btn-sm">
+          <i class="fas fa-chevron-left"></i> Anterior
+        </button>
+        <span id="pageInfo" class="pagination-info">Página 1 de 1</span>
+        <button id="nextPage" class="btn btn-secondary btn-sm">
+          Siguiente <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+      <button onclick="documentManager.printDocumentList()" class="btn btn-success">
+        <i class="fas fa-print"></i> Imprimir Listado
+      </button>
+    </div>
+
+    <!-- Información de elementos -->
+    <div style="text-align: center; margin-bottom: 20px;">
+      <span id="totalElements" class="pagination-info">Total: 0 elementos</span>
     </div>
 
     <!-- Tabla de documentos -->
