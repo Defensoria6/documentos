@@ -1,13 +1,14 @@
 <!DOCTYPE html>
+
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Documentos - Cloudinary & Firebase</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://upload-widget.cloudinary.com/latest/global/all.js"></script>
-  <script type="module">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Documentos - Cloudinary &amp; Firebase</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://upload-widget.cloudinary.com/latest/global/all.js"></script>
+<script type="module">
     // --- Firebase SDK ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
@@ -505,7 +506,7 @@
       window.documentManager = new DocumentManager();
     });
   </script>
-  <style>
+<style>
     * {
       margin: 0;
       padding: 0;
@@ -538,14 +539,11 @@
     }
 
     .header h1 {
-      color: #2d3748;
-      font-size: 14px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0;
+      text-align: center;
     }
 
     .header p {
@@ -937,90 +935,153 @@
       font-family: 'Monaco', 'Menlo', monospace;
       font-size: 14px;
     }
-  </style>
+  
+
+/* --- Title box for "Documentos" --- */
+.title-box {
+  border: 2px solid #3b82f6; /* azul */
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3); /* borde sombreado de azul */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+/* --- List options smaller (acciones, paginación) keeping shape and style --- */
+.actions-cell .btn-sm {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 10px;
+}
+.actions-cell .btn-sm i {
+  font-size: 16px; /* tamaño 16 px para íconos */
+}
+
+/* Also reduce pagination button footprint slightly */
+.pagination-controls .btn-sm,
+.pagination-controls .btn {
+  padding: 8px 14px;
+  font-size: 12px;
+  border-radius: 10px;
+}
+.pagination-info {
+  font-size: 12px;
+}
+
+/* Table tweaks to harmonize with 16px elements */
+th { font-size: 13px; }
+td { font-size: 13px; }
+.file-name { font-size: 13px; }
+.file-description { font-size: 12px; }
+
+/* --- Responsive improvements --- */
+.table-container {
+  overflow-x: auto; /* scroll horizontal en móviles si es necesario */
+}
+table { min-width: 720px; } /* evita colapsar columnas en pantallas estrechas */
+
+/* Layout adjustments for tablets */
+@media (max-width: 1024px) {
+  .container { padding: 24px; }
+  .file-icon { font-size: 1.25rem; }
+}
+
+/* Layout adjustments for mobiles */
+@media (max-width: 640px) {
+  .title-box { padding: 10px 12px; }
+  .header p { font-size: 12px; }
+
+  .controls-section { gap: 12px; }
+  .search-container input { padding: 10px 12px; }
+
+  th, td { padding: 12px 10px; }
+  .actions-cell { gap: 6px; }
+  .actions-cell .btn-sm { padding: 6px 8px; font-size: 11px; }
+  .actions-cell .btn-sm i { font-size: 16px; }
+}
+</style>
 </head>
 <body>
-  <div class="container">
-    <!-- Header -->
-    <div class="header">
-      <h1><i class="fas fa-cloud-upload-alt"></i> Documentos</h1>
-      <p>Almacenamiento seguro y accesible</p>
-    </div>
-
-    <!-- Mensajes -->
-    <div id="messageContainer"></div>
-
-    <!-- Loading -->
-    <div id="loadingIndicator">
-      <div class="spinner"></div>
+<div class="container">
+<!-- Header -->
+<div class="header">
+<div class="title-box">
+<h1>Documentos</h1>
+</div>
+<p>Almacenamiento seguro y accesible</p>
+</div>
+<!-- Mensajes -->
+<div id="messageContainer"></div>
+<!-- Loading -->
+<div id="loadingIndicator">
+<div class="spinner"></div>
       Procesando...
     </div>
-
-    <!-- Área de subida -->
-    <div class="upload-section">
-      <div id="fileDropZone" class="file-drop-zone">
-        <div class="upload-icon">
-          <i class="fas fa-cloud-upload-alt"></i>
-        </div>
-        <h3>Arrastra archivos aquí</h3>
-        <p>o haz clic para seleccionar archivos desde tu dispositivo</p>
-        <input type="file" id="fileInput" multiple style="display: none;">
-      </div>
-
-      <div style="text-align: center; margin-top: 20px;">
-        <button id="cloudinaryUpload" class="btn btn-secondary">
-          <i class="fas fa-upload"></i>
+<!-- Área de subida -->
+<div class="upload-section">
+<div class="file-drop-zone" id="fileDropZone">
+<div class="upload-icon">
+<i class="fas fa-cloud-upload-alt"></i>
+</div>
+<h3>Arrastra archivos aquí</h3>
+<p>o haz clic para seleccionar archivos desde tu dispositivo</p>
+<input id="fileInput" multiple="" style="display: none;" type="file"/>
+</div>
+<div style="text-align: center; margin-top: 20px;">
+<button class="btn btn-secondary" id="cloudinaryUpload">
+<i class="fas fa-upload"></i>
           Subir con Cloudinary Widget
         </button>
-      </div>
-    </div>
-
-    <!-- Controles de búsqueda y paginación -->
-    <div class="controls-section">
-      <div class="search-container">
-        <input type="text" id="searchInput" placeholder="Buscar documentos por nombre o descripción...">
-      </div>
-      <div class="pagination-controls">
-        <button id="prevPage" class="btn btn-secondary btn-sm">
-          <i class="fas fa-chevron-left"></i> Anterior
+</div>
+</div>
+<!-- Controles de búsqueda y paginación -->
+<div class="controls-section">
+<div class="search-container">
+<input id="searchInput" placeholder="Buscar documentos por nombre o descripción..." type="text"/>
+</div>
+<div class="pagination-controls">
+<button class="btn btn-secondary btn-sm" id="prevPage">
+<i class="fas fa-chevron-left"></i> Anterior
         </button>
-        <span id="pageInfo" class="pagination-info">Página 1 de 1</span>
-        <button id="nextPage" class="btn btn-secondary btn-sm">
+<span class="pagination-info" id="pageInfo">Página 1 de 1</span>
+<button class="btn btn-secondary btn-sm" id="nextPage">
           Siguiente <i class="fas fa-chevron-right"></i>
-        </button>
-      </div>
-      <button onclick="documentManager.printDocumentList()" class="btn btn-success">
-        <i class="fas fa-print"></i> Imprimir Listado
+</button>
+</div>
+<button class="btn btn-success" onclick="documentManager.printDocumentList()">
+<i class="fas fa-print"></i> Imprimir Listado
       </button>
-    </div>
-
-    <!-- Información de elementos -->
-    <div style="text-align: center; margin-bottom: 20px;">
-      <span id="totalElements" class="pagination-info">Total: 0 elementos</span>
-    </div>
-
-    <!-- Tabla de documentos -->
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th><i class="fas fa-file"></i> Documento</th>
-            <th><i class="fas fa-calendar"></i> Fecha</th>
-            <th><i class="fas fa-weight"></i> Tamaño</th>
-            <th><i class="fas fa-source"></i> Origen</th>
-            <th><i class="fas fa-cogs"></i> Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="documentsTableBody">
-          <tr>
-            <td colspan="5" style="text-align: center; padding: 40px;">
-              <div class="spinner"></div>
+</div>
+<!-- Información de elementos -->
+<div style="text-align: center; margin-bottom: 20px;">
+<span class="pagination-info" id="totalElements">Total: 0 elementos</span>
+</div>
+<!-- Tabla de documentos -->
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th><i class="fas fa-file"></i> Documento</th>
+<th><i class="fas fa-calendar"></i> Fecha</th>
+<th><i class="fas fa-weight"></i> Tamaño</th>
+<th><i class="fas fa-source"></i> Origen</th>
+<th><i class="fas fa-cogs"></i> Acciones</th>
+</tr>
+</thead>
+<tbody id="documentsTableBody">
+<tr>
+<td colspan="5" style="text-align: center; padding: 40px;">
+<div class="spinner"></div>
               Cargando documentos...
             </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </body>
 </html>
