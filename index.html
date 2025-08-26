@@ -1,159 +1,1044 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Biblioteca Documentos</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://upload-widget.cloudinary.com/latest/global/all.js"></script>
-  <style>
-    body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:100vh; color:#1a202c; }
-    .container { max-width:1200px; margin:0 auto; padding:2rem; }
-    .header { text-align:center; margin-bottom:2rem; }
-    .header h2 { color:white; font-weight:bold; }
-    .card { background:white; border-radius:16px; margin-bottom:2rem; box-shadow:0 4px 12px rgba(0,0,0,.1); }
-    .card-header { padding:1rem; background:linear-gradient(135deg,#667eea,#764ba2); color:white; border-radius:16px 16px 0 0; }
-    .card-body { padding:1.5rem; }
-    .upload-zone { border:2px dashed #667eea; border-radius:12px; padding:2rem; text-align:center; cursor:pointer; }
-    .btn { padding:0.5rem 1rem; border:none; border-radius:8px; cursor:pointer; margin:0.2rem; }
-    .btn-primary { background:#667eea; color:white; }
-    .btn-secondary { background:#e2e8f0; }
-    .btn-success { background:#38a169; color:white; }
-    .btn-danger { background:#e53e3e; color:white; }
-    table { width:100%; border-collapse:collapse; margin-top:1rem; }
-    th,td { padding:0.75rem; border-bottom:1px solid #e2e8f0; }
-    th { background:#667eea; color:white; text-align:left; }
-    .no-documents { text-align:center; padding:1rem; color:#718096; }
-    #fileInput { display:none; }
-    .loading { display:none; text-align:center; padding:1rem; color:#667eea; }
-    .spinner { width:20px; height:20px; border:3px solid #f3f3f3; border-top:3px solid #667eea; border-radius:50%; animation:spin 1s linear infinite; display:inline-block; }
-    @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca Documentos</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://upload-widget.cloudinary.com/latest/global/all.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1a202c;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Upload Section */
+        .upload-zone {
+            border: 2px dashed rgba(102, 126, 234, 0.3);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .upload-zone:hover::before,
+        .upload-zone.drag-over::before {
+            opacity: 1;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.drag-over {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-zone i {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .upload-zone h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-zone p {
+            color: #718096;
+            margin-bottom: 1.5rem;
+        }
+
+        .upload-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.9);
+            color: #4a5568;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f56565, #e53e3e);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .pagination-info {
+            font-size: 0.875rem;
+            color: #718096;
+        }
+
+        /* Messages */
+        .message-container {
+            margin-bottom: 1rem;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .message-success {
+            background: #f0fff4;
+            color: #276749;
+            border: 1px solid #9ae6b4;
+        }
+
+        .message-error {
+            background: #fed7d7;
+            color: #c53030;
+            border: 1px solid #feb2b2;
+        }
+
+        .message-info {
+            background: #ebf8ff;
+            color: #2b6cb0;
+            border: 1px solid #bee3f8;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            color: #667eea;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.75rem;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+            vertical-align: middle;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        tr:hover td {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+            width: 40px;
+            text-align: center;
+        }
+
+        .file-icon.pdf { color: #e53e3e; }
+        .file-icon.doc { color: #2b6cb0; }
+        .file-icon.docx { color: #2b6cb0; }
+        .file-icon.xls { color: #38a169; }
+        .file-icon.xlsx { color: #38a169; }
+        .file-icon.ppt { color: #d69e2e; }
+        .file-icon.pptx { color: #d69e2e; }
+        .file-icon.image { color: #805ad5; }
+        .file-icon.default { color: #718096; }
+
+        .file-details h4 {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+        }
+
+        .file-details p {
+            font-size: 0.875rem;
+            color: #718096;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .no-documents {
+            text-align: center;
+            padding: 3rem;
+            color: #718096;
+        }
+
+        .no-documents i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #cbd5e0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .upload-zone {
+                padding: 2rem 1rem;
+            }
+
+            .upload-buttons {
+                flex-direction: column;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .pagination {
+                justify-content: center;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+        }
+
+        /* Hidden file input */
+        #fileInput {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h2><i class="fas fa-file-alt"></i> Biblioteca de Documentos</h2>
-      <p style="color:white;">Importa y gestiona tus archivos PDF y DOC</p>
-    </div>
-
-    <!-- Subida -->
-    <div class="card">
-      <div class="card-header"><h3><i class="fas fa-cloud-upload-alt"></i> Subir Documentos</h3></div>
-      <div class="card-body">
-        <div class="upload-zone" id="fileDropZone">
-          <i class="fas fa-cloud-upload-alt fa-2x"></i>
-          <p>Arrastra o haz clic para seleccionar archivos (PDF, DOC, DOCX)</p>
-          <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Seleccionar Archivos</button>
-          <button class="btn btn-secondary" id="cloudinaryUpload"><i class="fas fa-cloud"></i> Subir con Cloudinary</button>
+    <div class="container">
+        <div class="header">
+            <h2 style="font-weight: bold; color: white;"><i class="fas fa-file-alt"></i>Biblioteca de Documentos</h2>
+            <p>Importa y gestiona tus archivos PDF y DOC</p>
         </div>
-        <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx">
-      </div>
-    </div>
 
-    <!-- Mensajes -->
-    <div id="messageContainer"></div>
-    <div id="loadingIndicator" class="loading"><div class="spinner"></div> Procesando...</div>
-
-    <!-- Documentos -->
-    <div class="card">
-      <div class="card-header"><h3><i class="fas fa-list"></i> Documentos Almacenados</h3></div>
-      <div class="card-body">
-        <div class="table-container">
-          <table>
-            <thead><tr><th>Documento</th><th>Fecha</th><th>Tamaño</th><th>Acciones</th></tr></thead>
-            <tbody id="documentsTableBody">
-              <tr><td colspan="4" class="no-documents">No hay documentos</td></tr>
-            </tbody>
-          </table>
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-cloud-upload-alt"></i> Subir Documentos</h2>
+            </div>
+            <div class="card-body">
+                <div class="upload-zone" id="fileDropZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h3>Arrastra y suelta tus archivos aquí</h3>
+                    <p>O haz clic para seleccionar archivos (PDF, DOC, DOCX)</p>
+                    <div class="upload-buttons">
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-folder-open"></i> Seleccionar Archivos
+                        </button>
+                        <button class="btn btn-secondary" id="cloudinaryUpload">
+                            <i class="fas fa-cloud"></i> Subir con Cloudinary
+                        </button>
+                    </div>
+                </div>
+                <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx">
+            </div>
         </div>
-        <p id="totalElements">Total: 0 elementos</p>
-      </div>
+
+        <div id="messageContainer" class="message-container"></div>
+
+        <div id="loadingIndicator" class="loading">
+            <div class="spinner"></div>
+            Procesando...
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-list"></i> Documentos Almacenados</h2>
+            </div>
+            <div class="card-body">
+                <div class="controls">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Buscar documentos...">
+                    </div>
+                    <div class="pagination">
+                        <button class="btn btn-sm btn-secondary" id="prevPage">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </button>
+                        <span class="pagination-info" id="pageInfo">Página 1 de 1</span>
+                        <button class="btn btn-sm btn-secondary" id="nextPage">
+                            Siguiente <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-sm btn-success" onclick="documentManager.printDocumentList()">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Documento</th>
+                                <th>Fecha de Subida</th>
+                                <th>Tamaño</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="documentsTableBody">
+                            <tr>
+                                <td colspan="4" class="no-documents">
+                                    <i class="fas fa-folder-open"></i>
+                                    <p>No hay documentos almacenados</p>
+                                    <small>Sube tu primer documento usando el área de arriba</small>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination">
+                    <span class="pagination-info" id="totalElements">Total: 0 elementos</span>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    <script type="module">
+        // Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCpPdY984mCYWQodeqA6ZVXFxedalExc34",
-      authDomain: "repositorio-documentos.firebaseapp.com",
-      projectId: "repositorio-documentos",
-      storageBucket: "repositorio-documentos.firebasestorage.app",
-      messagingSenderId: "359488594361",
-      appId: "1:359488594361:web:421264bbc3c5f8f7c01668"
-    };
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCpPdY984mCYWQodeqA6ZVXFxedalExc34",
+            authDomain: "repositorio-documentos.firebaseapp.com",
+            projectId: "repositorio-documentos",
+            storageBucket: "repositorio-documentos.firebasestorage.app",
+            messagingSenderId: "359488594361",
+            appId: "1:359488594361:web:421264bbc3c5f8f7c01668"
+        };
 
-    const CLOUDINARY_CONFIG = { cloudName: "dbzucruu4", uploadPreset: "documentos_defensoria" };
+        // Configuración de Cloudinary
+        const CLOUDINARY_CONFIG = {
+            cloudName: 'dbzucruu4',
+            uploadPreset: 'documentos_defensoria'
+        };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-    function showMessage(msg, type='info'){document.getElementById('messageContainer').innerHTML=`<p style="color:${type==='error'?'red':'green'}">${msg}</p>`;}
-    function showLoading(show=true){document.getElementById('loadingIndicator').style.display=show?'block':'none';}
-    function formatFileSize(b){if(b===0)return"0B";const k=1024,sizes=['B','KB','MB','GB'],i=Math.floor(Math.log(b)/Math.log(k));return (b/Math.pow(k,i)).toFixed(1)+' '+sizes[i];}
+        // Utilidades
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.getElementById('messageContainer');
+            messageDiv.innerHTML = `
+                <div class="message message-${type}">
+                    <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i>
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
+        }
 
-    class DocumentManager {
-      constructor(){this.collectionRef=collection(db,"documents");this.documents=[];this.init();}
-      async init(){this.setupFileUpload();this.setupCloudinary();await this.loadDocuments();}
-      async loadDocuments(){
-        showLoading(true);
-        const q=query(this.collectionRef, orderBy("uploadedAt","desc"));
-        const snap=await getDocs(q);
-        this.documents=snap.docs.map(d=>({id:d.id,...d.data()}));
-        this.renderTable();
-        showLoading(false);
-      }
-      setupFileUpload(){
-        const fi=document.getElementById("fileInput");
-        const dz=document.getElementById("fileDropZone");
-        dz.addEventListener("click",()=>fi.click());
-        fi.addEventListener("change",(e)=>this.handleFiles(e.target.files));
-      }
-      async handleFiles(files){for(const f of files){await this.uploadFileToCloudinary(f);}await this.loadDocuments();}
-      
-      async uploadFileToCloudinary(file){
-        return new Promise((resolve,reject)=>{
-          const fd=new FormData();
-          fd.append("file",file);
-          fd.append("upload_preset",CLOUDINARY_CONFIG.uploadPreset);
-          fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/raw/upload`,{method:"POST",body:fd})
-          .then(r=>r.json()).then(async res=>{
-            if(res.error){showMessage("Error: "+res.error.message,"error");return reject(res.error);}
-            const docData={name:res.original_filename+'.'+res.format,size:res.bytes,uploadedAt:new Date().toISOString(),url:res.secure_url,cloudinaryId:res.public_id};
-            await addDoc(this.collectionRef,docData);
-            showMessage(file.name+" subido correctamente","success");
-            resolve(res);
-          }).catch(err=>{showMessage("Error al subir","error");reject(err);});
+        function showLoading(show = true) {
+            const loadingDiv = document.getElementById('loadingIndicator');
+            loadingDiv.style.display = show ? 'block' : 'none';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const iconMap = {
+                'pdf': { icon: 'fa-file-pdf', class: 'pdf' },
+                'doc': { icon: 'fa-file-word', class: 'doc' },
+                'docx': { icon: 'fa-file-word', class: 'docx' },
+                'xls': { icon: 'fa-file-excel', class: 'xls' },
+                'xlsx': { icon: 'fa-file-excel', class: 'xlsx' },
+                'ppt': { icon: 'fa-file-powerpoint', class: 'ppt' },
+                'pptx': { icon: 'fa-file-powerpoint', class: 'pptx' },
+                'jpg': { icon: 'fa-file-image', class: 'image' },
+                'jpeg': { icon: 'fa-file-image', class: 'image' },
+                'png': { icon: 'fa-file-image', class: 'image' },
+                'gif': { icon: 'fa-file-image', class: 'image' }
+            };
+            return iconMap[ext] || { icon: 'fa-file', class: 'default' };
+        }
+
+        // Gestor de documentos mejorado
+        class DocumentManager {
+            constructor() {
+                this.documents = [];
+                this.filteredDocuments = [];
+                this.collectionRef = collection(db, "documents");
+                this.cloudinaryWidget = null;
+                this.currentPage = 1;
+                this.itemsPerPage = 10;
+                this.searchTerm = '';
+                this.init();
+            }
+
+            async init() {
+                try {
+                    await this.loadDocuments();
+                    this.setupFileUpload();
+                    this.setupCloudinary();
+                    this.setupSearch();
+                    this.setupPagination();
+                    showMessage('Sistema inicializado correctamente', 'success');
+                } catch (error) {
+                    console.error('Error al inicializar:', error);
+                    showMessage('Error al inicializar el sistema', 'error');
+                }
+            }
+
+            async loadDocuments() {
+                try {
+                    showLoading(true);
+                    const q = query(this.collectionRef, orderBy("uploadedAt", "desc"));
+                    const snapshot = await getDocs(q);
+                    this.documents = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    this.applyFilter();
+                    this.renderTable();
+                    this.updatePaginationInfo();
+                } catch (error) {
+                    console.error('Error al cargar documentos:', error);
+                    showMessage('Error al cargar los documentos', 'error');
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            setupSearch() {
+                const searchInput = document.getElementById('searchInput');
+                searchInput.addEventListener('input', (e) => {
+                    this.searchTerm = e.target.value.toLowerCase();
+                    this.currentPage = 1;
+                    this.applyFilter();
+                    this.renderTable();
+                    this.updatePaginationInfo();
+                });
+            }
+
+            setupPagination() {
+                document.getElementById('prevPage').addEventListener('click', () => {
+                    if (this.currentPage > 1) {
+                        this.currentPage--;
+                        this.renderTable();
+                        this.updatePaginationInfo();
+                    }
+                });
+
+                document.getElementById('nextPage').addEventListener('click', () => {
+                    const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
+                    if (this.currentPage < totalPages) {
+                        this.currentPage++;
+                        this.renderTable();
+                        this.updatePaginationInfo();
+                    }
+                });
+            }
+
+            applyFilter() {
+                if (!this.searchTerm) {
+                    this.filteredDocuments = [...this.documents];
+                } else {
+                    this.filteredDocuments = this.documents.filter(doc => 
+                        doc.name.toLowerCase().includes(this.searchTerm) ||
+                        doc.description.toLowerCase().includes(this.searchTerm)
+                    );
+                }
+            }
+
+            updatePaginationInfo() {
+                const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
+                const totalElements = this.filteredDocuments.length;
+                
+                document.getElementById('pageInfo').textContent = 
+                    `Página ${this.currentPage} de ${totalPages}`;
+                document.getElementById('totalElements').textContent = 
+                    `Total: ${totalElements} elementos`;
+                
+                document.getElementById('prevPage').disabled = this.currentPage === 1;
+                document.getElementById('nextPage').disabled = this.currentPage === totalPages || totalPages === 0;
+            }
+
+            setupFileUpload() {
+                const dropZone = document.getElementById("fileDropZone");
+                const fileInput = document.getElementById("fileInput");
+
+                dropZone.addEventListener("click", () => fileInput.click());
+
+                dropZone.addEventListener("dragover", (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('drag-over');
+                });
+
+                dropZone.addEventListener("dragleave", () => {
+                    dropZone.classList.remove('drag-over');
+                });
+
+                dropZone.addEventListener("drop", (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('drag-over');
+                    this.handleFileSelection(e.dataTransfer.files);
+                });
+
+                fileInput.addEventListener("change", (e) => {
+                    this.handleFileSelection(e.target.files);
+                });
+            }
+
+            async handleFileSelection(files) {
+                if (!files.length) return;
+
+                // Filtrar solo archivos PDF y DOC
+                const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                const validFiles = Array.from(files).filter(file => 
+                    allowedTypes.includes(file.type) || 
+                    file.name.toLowerCase().endsWith('.pdf') || 
+                    file.name.toLowerCase().endsWith('.doc') || 
+                    file.name.toLowerCase().endsWith('.docx')
+                );
+
+                if (validFiles.length === 0) {
+                    showMessage('Solo se permiten archivos PDF y DOC/DOCX', 'error');
+                    return;
+                }
+
+                if (validFiles.length !== files.length) {
+                    showMessage(`Se procesarán ${validFiles.length} de ${files.length} archivos (solo PDF y DOC)`, 'info');
+                }
+
+                showMessage(`Subiendo ${validFiles.length} archivo(s) a Cloudinary...`, 'info');
+                showLoading(true);
+
+                for (const file of validFiles) {
+                    try {
+                        await this.uploadFileToCloudinary(file);
+                    } catch (error) {
+                        console.error('Error al subir archivo:', error);
+                        showMessage(`Error al subir ${file.name}`, 'error');
+                    }
+                }
+
+                showLoading(false);
+                document.getElementById("fileInput").value = '';
+            }
+
+            async uploadFileToCloudinary(file) {
+                return new Promise((resolve, reject) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+                    formData.append('resource_type', 'auto');
+
+                    fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/auto/upload`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(async (result) => {
+                        if (result.error) {
+                            throw new Error(result.error.message);
+                        }
+
+                        const docData = {
+                            name: result.original_filename + '.' + result.format,
+                            description: `Documento subido desde dispositivo local`,
+                            size: result.bytes,
+                            uploadedAt: new Date().toISOString(),
+                            url: result.secure_url,
+                            cloudinaryId: result.public_id,
+                            fileType: result.resource_type,
+                            format: result.format
+                        };
+
+                        await addDoc(this.collectionRef, docData);
+                        await this.loadDocuments();
+                        showMessage(`${file.name} subido exitosamente`, 'success');
+                        resolve(result);
+                    })
+                    .catch(error => {
+                        console.error('Error en Cloudinary:', error);
+                        reject(error);
+                    });
+                });
+            }
+
+            setupCloudinary() {
+                if (typeof cloudinary === 'undefined') {
+                    console.error('Cloudinary SDK no está disponible');
+                    return;
+                }
+
+                this.cloudinaryWidget = cloudinary.createUploadWidget(
+                    {
+                        cloudName: CLOUDINARY_CONFIG.cloudName,
+                        uploadPreset: CLOUDINARY_CONFIG.uploadPreset,
+                        multiple: true,
+                        maxFiles: 10,
+                        clientAllowedFormats: ["pdf", "doc", "docx"],
+                        maxFileSize: 10000000, // 10MB
+                        sources: ['local', 'url'],
+                        showAdvancedOptions: true,
+                        cropping: false,
+                        folder: 'documentos'
+                    },
+                    async (error, result) => {
+                        if (error) {
+                            console.error('Error en Cloudinary Widget:', error);
+                            showMessage('Error al subir archivo con Cloudinary', 'error');
+                            return;
+                        }
+
+                        if (result.event === "success") {
+                            try {
+                                const docData = {
+                                    name: result.info.original_filename + '.' + result.info.format,
+                                    description: 'Subido con Cloudinary Widget',
+                                    size: result.info.bytes,
+                                    uploadedAt: new Date().toISOString(),
+                                    url: result.info.secure_url,
+                                    cloudinaryId: result.info.public_id,
+                                    fileType: result.info.resource_type,
+                                    format: result.info.format
+                                };
+
+                                await addDoc(this.collectionRef, docData);
+                                await this.loadDocuments();
+                                showMessage(`${docData.name} subido exitosamente`, 'success');
+                            } catch (error) {
+                                console.error('Error al guardar en Firestore:', error);
+                                showMessage('Error al guardar el documento', 'error');
+                            }
+                        }
+                    }
+                );
+
+                document.getElementById("cloudinaryUpload").addEventListener("click", () => {
+                    this.cloudinaryWidget.open();
+                });
+            }
+
+            async deleteDocument(id, cloudinaryId) {
+                if (!confirm("¿Estás seguro de que deseas eliminar este documento?")) return;
+
+                try {
+                    showLoading(true);
+                    await deleteDoc(doc(db, "documents", id));
+                    await this.loadDocuments();
+                    showMessage('Documento eliminado correctamente', 'success');
+                } catch (error) {
+                    console.error('Error al eliminar documento:', error);
+                    showMessage('Error al eliminar el documento', 'error');
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            async editDocument(id, currentName, currentDescription) {
+                const newName = prompt('Nuevo nombre del documento:', currentName);
+                if (newName === null) return;
+
+                const newDescription = prompt('Nueva descripción del documento:', currentDescription);
+                if (newDescription === null) return;
+
+                try {
+                    showLoading(true);
+                    await updateDoc(doc(db, "documents", id), {
+                        name: newName,
+                        description: newDescription
+                    });
+                    await this.loadDocuments();
+                    showMessage('Documento actualizado correctamente', 'success');
+                } catch (error) {
+                    console.error('Error al actualizar documento:', error);
+                    showMessage('Error al actualizar el documento', 'error');
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            downloadDocument(url, filename) {
+                try {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showMessage(`Descargando ${filename}...`, 'success');
+                } catch (error) {
+                    console.error('Error al descargar:', error);
+                    showMessage('Error al descargar el archivo', 'error');
+                }
+            }
+
+            printDocumentList() {
+                const printWindow = window.open('', '_blank');
+                const currentDate = new Date().toLocaleDateString('es-ES');
+                
+                let printContent = `
+                    <html>
+                        <head>
+                            <title>Listado de Documentos</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; margin: 20px; }
+                                h1 { text-align: center; margin-bottom: 20px; }
+                                .header-info { margin-bottom: 20px; }
+                                table { width: 100%; border-collapse: collapse; }
+                                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                                th { background-color: #f2f2f2; font-weight: bold; }
+                                .footer { margin-top: 20px; text-align: center; }
+                            </style>
+                        </head>
+                        <body>
+                            <h1>Listado de Documentos</h1>
+                            <div class="header-info">
+                                <p><strong>Fecha de impresión:</strong> ${currentDate}</p>
+                                <p><strong>Total de elementos:</strong> ${this.filteredDocuments.length}</p>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Nombre del Documento</th>
+                                        <th>Descripción</th>
+                                        <th>Fecha de Subida</th>
+                                        <th>Tamaño</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+
+                this.filteredDocuments.forEach(doc => {
+                    const fecha = new Date(doc.uploadedAt).toLocaleDateString("es-ES");
+                    const fileSize = formatFileSize(doc.size);
+                    
+                    printContent += `
+                        <tr>
+                            <td>${doc.name}</td>
+                            <td>${doc.description}</td>
+                            <td>${fecha}</td>
+                            <td>${fileSize}</td>
+                        </tr>
+                    `;
+                });
+
+                printContent += `
+                                </tbody>
+                            </table>
+                            <div class="footer">
+                                <p>Sistema de Gestión de Documentos</p>
+                            </div>
+                        </body>
+                    </html>
+                `;
+
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+                printWindow.print();
+            }
+
+            renderTable() {
+                const tbody = document.getElementById("documentsTableBody");
+                
+                if (!this.filteredDocuments.length) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="no-documents">
+                                <i class="fas fa-folder-open"></i>
+                                <p>No hay documentos almacenados</p>
+                                <small>Sube tu primer documento usando el área de arriba</small>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = startIndex + this.itemsPerPage;
+                const pageDocuments = this.filteredDocuments.slice(startIndex, endIndex);
+
+                tbody.innerHTML = pageDocuments.map(doc => {
+                    const fecha = new Date(doc.uploadedAt).toLocaleString("es-ES", {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const fileSize = formatFileSize(doc.size);
+                    const fileIcon = getFileIcon(doc.name);
+
+                    return `
+                        <tr>
+                            <td>
+                                <div class="file-info">
+                                    <div class="file-icon ${fileIcon.class}">
+                                        <i class="fas ${fileIcon.icon}"></i>
+                                    </div>
+                                    <div class="file-details">
+                                        <h4>${doc.name}</h4>
+                                        <p>${doc.description}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>${fecha}</td>
+                            <td>${fileSize}</td>
+                            <td>
+                                <div class="actions">
+                                    <button class="btn btn-sm btn-primary" onclick="documentManager.downloadDocument('${doc.url}', '${doc.name}')" title="Descargar">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary" onclick="documentManager.editDocument('${doc.id}', '${doc.name}', '${doc.description}')" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="documentManager.deleteDocument('${doc.id}', '${doc.cloudinaryId}')" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Inicializar cuando el DOM esté listo
+        window.addEventListener("DOMContentLoaded", () => {
+            window.documentManager = new DocumentManager();
         });
-      }
-
-      setupCloudinary(){
-        if(typeof cloudinary==='undefined')return;
-        this.widget=cloudinary.createUploadWidget({cloudName:CLOUDINARY_CONFIG.cloudName,uploadPreset:CLOUDINARY_CONFIG.uploadPreset,clientAllowedFormats:["pdf","doc","docx"],resource_type:"raw"},
-        async (err,res)=>{if(res&&res.event==="success"){const d={name:res.info.original_filename+'.'+res.info.format,size:res.info.bytes,uploadedAt:new Date().toISOString(),url:res.info.secure_url,cloudinaryId:res.info.public_id};await addDoc(this.collectionRef,d);this.loadDocuments();}});
-        document.getElementById("cloudinaryUpload").addEventListener("click",()=>this.widget.open());
-      }
-
-      async deleteDocument(id){if(!confirm("Eliminar documento?"))return;await deleteDoc(doc(db,"documents",id));await this.loadDocuments();}
-      
-      renderTable(){
-        const tbody=document.getElementById("documentsTableBody");
-        if(!this.documents.length){tbody.innerHTML='<tr><td colspan="4" class="no-documents">No hay documentos</td></tr>';document.getElementById("totalElements").textContent="Total: 0 elementos";return;}
-        tbody.innerHTML=this.documents.map(doc=>`<tr>
-          <td>${doc.name}</td>
-          <td>${new Date(doc.uploadedAt).toLocaleString("es-ES")}</td>
-          <td>${formatFileSize(doc.size)}</td>
-          <td><a href="${doc.url}" target="_blank" class="btn btn-sm btn-primary">Ver</a>
-              <button class="btn btn-sm btn-danger" onclick="documentManager.deleteDocument('${doc.id}')">Eliminar</button></td>
-        </tr>`).join('');
-        document.getElementById("totalElements").textContent="Total: "+this.documents.length+" elementos";
-      }
-    }
-
-    window.addEventListener("DOMContentLoaded",()=>{window.documentManager=new DocumentManager();});
-  </script>
+    </script>
 </body>
 </html>
