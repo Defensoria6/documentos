@@ -850,21 +850,22 @@
                 });
             }
 
-            async deleteDocument(id, cloudinaryId) {
-                if (!confirm("¿Estás seguro de que deseas eliminar este documento?")) return;
+            // Se quita el método deleteDocument
+            // async deleteDocument(id, cloudinaryId) {
+            //     if (!confirm("¿Estás seguro de que deseas eliminar este documento?")) return;
 
-                try {
-                    showLoading(true);
-                    await deleteDoc(doc(db, "documents", id));
-                    await this.loadDocuments();
-                    showMessage('Documento eliminado correctamente', 'success');
-                } catch (error) {
-                    console.error('Error al eliminar documento:', error);
-                    showMessage('Error al eliminar el documento', 'error');
-                } finally {
-                    showLoading(false);
-                }
-            }
+            //     try {
+            //         showLoading(true);
+            //         await deleteDoc(doc(db, "documents", id));
+            //         await this.loadDocuments();
+            //         showMessage('Documento eliminado correctamente', 'success');
+            //     } catch (error) {
+            //         console.error('Error al eliminar documento:', error);
+            //         showMessage('Error al eliminar el documento', 'error');
+            //     } finally {
+            //         showLoading(false);
+            //     }
+            // }
 
             async editDocument(id, currentName, currentDescription) {
                 const newName = prompt('Nuevo nombre del documento:', currentName);
@@ -1023,9 +1024,6 @@
                                     </button>
                                     <button class="btn btn-sm btn-secondary" onclick="documentManager.editDocument('${doc.id}', '${doc.name}', '${doc.description}')" title="Editar">
                                         <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger" onclick="documentManager.deleteDocument('${doc.id}', '${doc.cloudinaryId}')" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                             </td>
